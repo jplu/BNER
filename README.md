@@ -4,7 +4,7 @@ This project is a NER based on Google [BERT](https://arxiv.org/pdf/1810.04805.pd
 ## Install BNER
 To install the BNER package, run:
 ```text
-pip install bner
+pip install -e bner .
 ```
 
 ## Prepare your Google Cloud Platform environment
