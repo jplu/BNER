@@ -1,0 +1,4 @@
+trainingInput:
+  scaleTier: BASIC_TPU
+  runtimeVersion: '1.12'
+  pythonVersion: '3.5'

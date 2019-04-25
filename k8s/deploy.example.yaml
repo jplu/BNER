@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bner-service
+spec:
+  selector:
+    app: bner
+  type: NodePort
+  ports:
+    - protocol: TCP
+      name: bner-port
+      port: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bner-deployment
+  labels:
+    app: bner
+spec:
+  selector:
+    matchLabels:
+      app: bner
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bner
+    spec:
+      nodeSelector:
+        bner-role: ner
+      containers:
+        - name: bner-client
+          livenessProbe:
+            httpGet:
+              path: /api/ner/health
+              port: 80
+            initialDelaySeconds: 40
+            periodSeconds: 40
+          readinessProbe:
+            httpGet:
+              path: /api/ner/health
+              port: 80
+            initialDelaySeconds: 40
+            periodSeconds: 40
+          image: <Docker-image>
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+        - name: bner-serving
+          livenessProbe:
+            httpGet:
+              path: /v1/models/<model-name>
+              port: 8501
+            initialDelaySeconds: 40
+            periodSeconds: 40
+          readinessProbe:
+            httpGet:
+              path: /v1/models/<model-name>
+              port: 8501
+            initialDelaySeconds: 40
+            periodSeconds: 40
+          image: <Docker-image>
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8500
+            - containerPort: 8501
+          resources:
+            limits:
+              nvidia.com/gpu: 1
