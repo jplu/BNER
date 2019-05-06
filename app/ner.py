@@ -9,6 +9,7 @@ from pydantic import BaseModel
 import _pickle as pickle
 import tensorflow as tf
 import spacy
+from spacy.tokens import Span
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 import tensorflow_hub as hub
@@ -23,25 +24,25 @@ spacy.prefer_gpu()
 def convert_single_example(ex_index, example, label_list, max_seq_length, tokenizer):
     label_map = {}
 
-    for (i, label) in enumerate(label_list, 1):
+    for (i, label) in enumerate(label_list):
         label_map[label] = i
 
     textlist = example.text_a.split(' ')
     labellist = example.label.split(' ')
     tokens = []
     labels = []
-    for i, word in enumerate(textlist):
+    for i, (word, label) in enumerate(zip(textlist, labellist)):
         token = tokenizer.tokenize(word)
         tokens.extend(token)
-        label_1 = labellist[i]
-        for m in range(len(token)):
-            if m == 0:
-                labels.append(label_1)
+
+        for i, _ in enumerate(token):
+            if i == 0:
+                labels.append(label)
             else:
                 labels.append("X")
     if len(tokens) >= max_seq_length - 1:
-        tokens = tokens[0:(max_seq_length - 2)]
-        labels = labels[0:(max_seq_length - 2)]
+        tokens = tokens[0:(max_seq_length - 1)]
+        labels = labels[0:(max_seq_length - 1)]
     ntokens = []
     segment_ids = []
     label_ids = []
@@ -52,9 +53,6 @@ def convert_single_example(ex_index, example, label_list, max_seq_length, tokeni
         ntokens.append(token)
         segment_ids.append(0)
         label_ids.append(label_map[labels[i]])
-    ntokens.append("[SEP]")
-    segment_ids.append(0)
-    label_ids.append(label_map["[SEP]"])
     input_ids = tokenizer.convert_tokens_to_ids(ntokens)
     input_mask = [1] * len(input_ids)
     while len(input_ids) < max_seq_length:
@@ -62,11 +60,12 @@ def convert_single_example(ex_index, example, label_list, max_seq_length, tokeni
         input_mask.append(0)
         segment_ids.append(0)
         label_ids.append(0)
-        ntokens.append("**NULL**")
+        ntokens.append("[PAD]")
     assert len(input_ids) == max_seq_length
     assert len(input_mask) == max_seq_length
     assert len(segment_ids) == max_seq_length
     assert len(label_ids) == max_seq_length
+    assert len(ntokens) == max_seq_length
 
     if ex_index < 5:
         tf.logging.info("*** Example ***")
@@ -134,8 +133,10 @@ async def health():
 async def get_prediction(ad: Ad):
     channel = grpc.insecure_channel("localhost:8500")
     stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
-    txt = " ".join([token.text for token in nlp.tokenizer(ad.text)])
-    input_example = bert.run_classifier.InputExample(guid="", text_a=txt, label=" ".join(['X'] * len(txt)))
+    doc = nlp.tokenizer(ad.text)
+    txt = " ".join([token.text for token in doc])
+    input_example = bert.run_classifier.InputExample(guid="", text_a=txt, label=" ".join(['X'] *
+                                                                                         len(txt)))
     feature = convert_single_example(0, input_example, label_list, MAX_SEQ_LENGTH, tokenizer)
     model_request = predict_pb2.PredictRequest()
     model_request.model_spec.name = MODEL_NAME
@@ -151,15 +152,43 @@ async def get_prediction(ad: Ad):
     result = stub.Predict(model_request, 5.0)
     result = tf.make_ndarray(result.outputs["output"])
 
-    return output(txt.split(), result[0])
+    return output(doc, result[0])
 
 
-def output(tokens, ids):
-    res = []
+def output(doc, ids):
+    res = {"entities": []}
+    entities = []
 
     annotations = list(filter(lambda a: a != 0 and a != label_list.index('X'), ids))[1:]
+    tf.logging.info(list(doc))
+    tf.logging.info([label_list[label] for label in annotations])
+    assert len(doc) == len(annotations)
+    prev_type = label_list[annotations[0]]
+    start_span = 0
+    end_span = 1
 
-    for token, annotation in zip(tokens, annotations):
-        res.append({"word": token, "label": label_list[annotation]})
+    for idx in range(1, len(annotations)):
+        if prev_type != label_list[annotations[idx]] and prev_type != 'O':
+            entities.append({"type": prev_type, "start": start_span, "end": end_span})
+            prev_type = label_list[annotations[idx]]
+            start_span = idx
+            end_span = idx + 1
+        elif annotations[idx] != 'O' and prev_type != 'O':
+            end_span += 1
+        else:
+            prev_type = label_list[annotations[idx]]
+            start_span = idx
+            end_span = idx + 1
+
+    if prev_type != 'O':
+        entities.append({"type": prev_type, "start": start_span, "end": end_span})
+
+    for ent in entities:
+        span = Span(doc, ent["start"], ent["end"], label=ent["type"])
+        doc.ents = list(doc.ents) + [span]
+
+    for ent in doc.ents:
+        res["entities"].append({"phrase": ent.text, "cleanPhrase": ent.text, "type": ent.label_,
+                                "startOffset": ent.start_char, "endOffset": ent.end_char})
 
     return res
