@@ -10,7 +10,7 @@ import _pickle as pickle
 
 
 def _load_dataset(name):
-    label_list = set({"[PAD]", "X", "[CLS]", "[SEP]"})
+    label_list = ["[PAD]", "X", "[CLS]", "[SEP]"]
     dataset = {"sentence": [], "labels": []}
     tf.logging.info(name + ": " + str(tf.gfile.Exists(name)))
     with tf.gfile.GFile(name) as f:
@@ -27,13 +27,14 @@ def _load_dataset(name):
             else:
                 if len(contents) == 0 and len(words) > 0:
                     for l in labels:
-                        label_list.add(l)
+                        if l not in label_list:
+                            label_list.append(l)
                     dataset["sentence"].append(' '.join(words))
                     dataset["labels"].append(' '.join(labels))
                     words = []
                     labels = []
 
-    return pd.DataFrame.from_dict(dataset), list(label_list)
+    return pd.DataFrame.from_dict(dataset), label_list
 
 
 def load_examples(tsv_file):
