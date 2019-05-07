@@ -189,7 +189,7 @@ def output(doc, ids):
         doc.ents = list(doc.ents) + [span]
 
     for ent in doc.ents:
-        res["entities"].append({"phrase": ent.text, "cleanPhrase": ent.text, "type": ent.label_,
+        res["entities"].append({"phrase": ent.text, "type": ent.label_,
                                 "startOffset": ent.start_char, "endOffset": ent.end_char})
 
     return res
