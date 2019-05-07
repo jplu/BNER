@@ -21,72 +21,6 @@ BERT_MODEL_HUB = "https://tfhub.dev/google/bert_multi_cased_L-12_H-768_A-12/1"
 spacy.prefer_gpu()
 
 
-def convert_single_example(ex_index, example, label_list, max_seq_length, tokenizer):
-    label_map = {}
-
-    for (i, label) in enumerate(label_list):
-        label_map[label] = i
-
-    textlist = example.text_a.split(' ')
-    labellist = example.label.split(' ')
-    tokens = []
-    labels = []
-    for i, (word, label) in enumerate(zip(textlist, labellist)):
-        token = tokenizer.tokenize(word)
-        tokens.extend(token)
-
-        for i, _ in enumerate(token):
-            if i == 0:
-                labels.append(label)
-            else:
-                labels.append("X")
-    if len(tokens) >= max_seq_length - 1:
-        tokens = tokens[0:(max_seq_length - 1)]
-        labels = labels[0:(max_seq_length - 1)]
-    ntokens = []
-    segment_ids = []
-    label_ids = []
-    ntokens.append("[CLS]")
-    segment_ids.append(0)
-    label_ids.append(label_map["[CLS]"])
-    for i, token in enumerate(tokens):
-        ntokens.append(token)
-        segment_ids.append(0)
-        label_ids.append(label_map[labels[i]])
-    input_ids = tokenizer.convert_tokens_to_ids(ntokens)
-    input_mask = [1] * len(input_ids)
-    while len(input_ids) < max_seq_length:
-        input_ids.append(0)
-        input_mask.append(0)
-        segment_ids.append(0)
-        label_ids.append(0)
-        ntokens.append("[PAD]")
-    assert len(input_ids) == max_seq_length
-    assert len(input_mask) == max_seq_length
-    assert len(segment_ids) == max_seq_length
-    assert len(label_ids) == max_seq_length
-    assert len(ntokens) == max_seq_length
-
-    if ex_index < 5:
-        tf.logging.info("*** Example ***")
-        tf.logging.info("guid: %s" % (example.guid))
-        tf.logging.info("tokens: %s" % " ".join(
-            [tokenization.printable_text(x) for x in tokens]))
-        tf.logging.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-        tf.logging.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-        tf.logging.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-        tf.logging.info("label_ids: %s" % " ".join([str(x) for x in label_ids]))
-
-    feature = run_classifier.InputFeatures(
-        input_ids=input_ids,
-        input_mask=input_mask,
-        segment_ids=segment_ids,
-        label_id=label_ids,
-    )
-
-    return feature
-
-
 def create_tokenizer_from_hub_module():
     """Get the vocab file and casing info from the Hub module."""
     with tf.Graph().as_default():
@@ -124,6 +58,72 @@ tokenizer = create_tokenizer_from_hub_module()
 nlp = spacy.load('fr_core_news_md')
 
 
+def convert_single_example(ex_index, example):
+    label_map = {}
+
+    for (i, label) in enumerate(label_list):
+        label_map[label] = i
+
+    textlist = example.text_a.split(' ')
+    labellist = example.label.split(' ')
+    tokens = []
+    labels = []
+    for i, (word, label) in enumerate(zip(textlist, labellist)):
+        token = tokenizer.tokenize(word)
+        tokens.extend(token)
+
+        for i, _ in enumerate(token):
+            if i == 0:
+                labels.append(label)
+            else:
+                labels.append("X")
+    if len(tokens) >= MAX_SEQ_LENGTH - 1:
+        tokens = tokens[0:(MAX_SEQ_LENGTH - 1)]
+        labels = labels[0:(MAX_SEQ_LENGTH - 1)]
+    ntokens = []
+    segment_ids = []
+    label_ids = []
+    ntokens.append("[CLS]")
+    segment_ids.append(0)
+    label_ids.append(label_map["[CLS]"])
+    for i, token in enumerate(tokens):
+        ntokens.append(token)
+        segment_ids.append(0)
+        label_ids.append(label_map[labels[i]])
+    input_ids = tokenizer.convert_tokens_to_ids(ntokens)
+    input_mask = [1] * len(input_ids)
+    while len(input_ids) < MAX_SEQ_LENGTH:
+        input_ids.append(0)
+        input_mask.append(0)
+        segment_ids.append(0)
+        label_ids.append(0)
+        ntokens.append("[PAD]")
+    assert len(input_ids) == MAX_SEQ_LENGTH
+    assert len(input_mask) == MAX_SEQ_LENGTH
+    assert len(segment_ids) == MAX_SEQ_LENGTH
+    assert len(label_ids) == MAX_SEQ_LENGTH
+    assert len(ntokens) == MAX_SEQ_LENGTH
+
+    if ex_index < 5:
+        tf.logging.info("*** Example ***")
+        tf.logging.info("guid: %s" % (example.guid))
+        tf.logging.info("tokens: %s" % " ".join(
+            [tokenization.printable_text(x) for x in tokens]))
+        tf.logging.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+        tf.logging.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+        tf.logging.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+        tf.logging.info("label_ids: %s" % " ".join([str(x) for x in label_ids]))
+
+    feature = run_classifier.InputFeatures(
+        input_ids=input_ids,
+        input_mask=input_mask,
+        segment_ids=segment_ids,
+        label_id=label_ids,
+    )
+
+    return feature
+
+
 @app.get("/api/ner/health")
 async def health():
     return {"message": "I'm alive"}
@@ -137,7 +137,7 @@ async def get_prediction(ad: Ad):
     txt = " ".join([token.text for token in doc])
     input_example = bert.run_classifier.InputExample(guid="", text_a=txt, label=" ".join(['X'] *
                                                                                          len(txt)))
-    feature = convert_single_example(0, input_example, label_list, MAX_SEQ_LENGTH, tokenizer)
+    feature = convert_single_example(0, input_example)
     model_request = predict_pb2.PredictRequest()
     model_request.model_spec.name = MODEL_NAME
     model_request.model_spec.signature_name = 'serving_default'
@@ -158,7 +158,8 @@ async def get_prediction(ad: Ad):
 def output(doc, ids):
     res = {"entities": []}
     entities = []
-
+    tf.logging.info(ids)
+    tf.logging.info(label_list)
     annotations = list(filter(lambda a: a != 0 and a != label_list.index('X'), ids))[1:]
     tf.logging.info(list(doc))
     tf.logging.info([label_list[label] for label in annotations])
