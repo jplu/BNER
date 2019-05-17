@@ -1,7 +1,7 @@
 # coding=utf-8
 
 import tensorflow as tf
-from bner.ner.model import train
+from bner.model import train
 
 
 def main(_):

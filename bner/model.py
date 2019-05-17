@@ -9,7 +9,7 @@ import bert
 from bert import tokenization
 from bert import optimization
 import numpy as np
-from bner.ner import dataset
+from bner import dataset
 import _pickle as pickle
 
 BERT_MODEL_HUB = "https://tfhub.dev/google/bert_multi_cased_L-12_H-768_A-12/1"

@@ -53,9 +53,9 @@ The training set has to be named `train.conll` and the test set `test.conll`.
 ## Usage
 NER entry point:
 ```text
-# python -m bner.ner.task --helpfull
+# python -m bner.task --helpfull
 
-USAGE: bner/ner/task.py [flags]
+USAGE: bner/task.py [flags]
 flags:
 
 absl.logging:
