@@ -217,7 +217,7 @@ python bner/ner/task.py \
 ### The serving Docker image
 To create the serving image, run the following commands:
 ```text
-docker run -d --runtime=nvidia --name serving_base tensorflow/serving:latest-gpu
+docker run -d --gpus all --name serving_base tensorflow/serving:latest-gpu
 mkdir -p model/<model-name>/<version>
 ```
 
