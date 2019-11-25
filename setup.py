@@ -3,9 +3,10 @@
 from setuptools import find_packages
 from setuptools import setup
 
-REQUIRED_PACKAGES = ['tensorflow_hub>=0.3.0',
-                     'bert-tensorflow>=1.0.1',
-                     'pandas>=0.23.4']
+REQUIRED_PACKAGES = ['tensorflow-gpu==2.0.0',
+                     'fastprogress==0.1.21',
+                     'pandas==0.25.0',
+                     'transformers==2.1.1']
 
 setup(
     name='bner',

@@ -136,7 +136,7 @@ venv.bak/
 
 # testing temporary model and dataset folders
 model/
-dataset/
+datasets/
 
 #K8S deployment
 k8s/deploy.text-classification.yaml
