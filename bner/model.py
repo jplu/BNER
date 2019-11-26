@@ -191,7 +191,7 @@ def train(args):
                 loss_metric(loss)
                 epoch_bar.child.comment = f'loss : {loss_metric.result()}'
 
-            epoch_bar.write(f'loss epoch {epoch}: {loss_metric.result()}')
+            epoch_bar.write(f'loss epoch {epoch + 1}: {loss_metric.result()}')
 
             loss_metric.reset_states()
 

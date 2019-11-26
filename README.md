@@ -43,8 +43,7 @@ Next, you have to create the bucket that will contain the models and the data an
 authorizations:
 ```text
 gsutil mb -c regional -l us-central1 gs://<bucket-name>
-gsutil acl ch -u <tpu-service>:READER gs://<bucket-name>
-gsutil acl ch -u <tpu-service>:WRITER gs://<bucket-name>
+gsutil -m acl ch -r -u <tpu-service>:O gs://<bucket-name>
 ```
 ## Dataset format
 To properly train the NER your dataset has to be in [CoNLL2003 format](https://www.clips.uantwerpen.be/conll2003/ner/).
@@ -58,6 +57,56 @@ NER entry point:
 USAGE: bner/task.py [flags]
 flags:
 
+bner.task.py:
+  --adam_epsilon: Epsilon for Adam optimizer.
+    (default: '1e-08')
+    (a number)
+  --batch_size: Total batch size for training.
+    (default: '32')
+    (an integer)
+  --data_dir: The input data dir. Should contain the .conll files (or other data files) for the task.
+  --epochs: Total number of training epochs to perform.
+    (default: '3')
+    (an integer)
+  --learning_rate: Initial learning rate for Adam.
+    (default: '5e-05')
+    (a number)
+  --max_seq_length: The maximum total input sentence length after tokenization. Sequences longer than this will be truncated, and sequences shorter than this will be padded.
+    (default: '128')
+    (an integer)
+  --num_tpu_cores: Total number of TPU cores to use.
+    (default: '8')
+    (an integer)
+  --output_dir: The output directory where the model checkpoints will be written.
+  --tpu: The Cloud TPU to use for training. This should be either the name used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 url.
+  --warmup_proportion: Proportion of training to perform linear learning rate warmup for.
+    (default: '0.0')
+    (a number)
+  --weight_decay: Weight deay if we apply some.
+    (default: '0.0')
+    (a number)
+
+absl.app:
+  -?,--[no]help: show this help
+    (default: 'false')
+  --[no]helpfull: show full help
+    (default: 'false')
+  --[no]helpshort: show this help
+    (default: 'false')
+  --[no]helpxml: like --helpfull, but generates XML output
+    (default: 'false')
+  --[no]only_check_args: Set to true to validate args and exit.
+    (default: 'false')
+  --[no]pdb_post_mortem: Set to true to handle uncaught exceptions with PDB post mortem.
+    (default: 'false')
+  --profile_file: Dump profile information to a file (for python -m pstats). Implies --run_with_profiling.
+  --[no]run_with_pdb: Set to true for PDB debug mode
+    (default: 'false')
+  --[no]run_with_profiling: Set to true for profiling the script. Execution will be slower, and the output format might change over time.
+    (default: 'false')
+  --[no]use_cprofile_for_profiling: Use cProfile instead of the profile module for profiling. This has no effect unless --run_with_profiling is set.
+    (default: 'true')
+
 absl.logging:
   --[no]alsologtostderr: also log to stderr?
     (default: 'false')
@@ -67,80 +116,36 @@ absl.logging:
     (default: 'false')
   --[no]showprefixforinfo: If False, do not prepend prefix to info messages when it's logged to stderr, --verbosity is set to INFO level, and python logging is used.
     (default: 'true')
-  --stderrthreshold: log messages at this level, or more severe, to stderr in addition to the logfile.  Possible values are 'debug', 'info', 'warning', 'error', and 'fatal'.  Obsoletes --alsologtostderr. Using --alsologtostderr cancels the effect of this flag.
-    Please also note that this flag is subject to --verbosity and requires logfile not be stderr.
+  --stderrthreshold: log messages at this level, or more severe, to stderr in addition to the logfile.  Possible values are 'debug', 'info', 'warning', 'error', and 'fatal'.  Obsoletes
+    --alsologtostderr. Using --alsologtostderr cancels the effect of this flag. Please also note that this flag is subject to --verbosity and requires logfile not be stderr.
     (default: 'fatal')
-  -v,--verbosity: Logging verbosity level. Messages logged at this level or lower will be included. Set to 1 for debug logging. If the flag was not set or supplied, the value will be changed from the default of -1 (warning) to 0 (info) after flags are parsed.
+  -v,--verbosity: Logging verbosity level. Messages logged at this level or lower will be included. Set to 1 for debug logging. If the flag was not set or supplied, the value will be changed
+    from the default of -1 (warning) to 0 (info) after flags are parsed.
     (default: '-1')
     (an integer)
 
-bert.run_classifier:
-  --bert_config_file: The config json file corresponding to the pre-trained BERT model. This specifies the model architecture.
-  --data_dir: The input data dir. Should contain the .tsv files (or other data files) for the task.
-  --[no]do_eval: Whether to run eval on the dev set.
-    (default: 'false')
-  --[no]do_lower_case: Whether to lower case the input text. Should be True for uncased models and False for cased models.
-    (default: 'true')
-  --[no]do_predict: Whether to run the model in inference mode on the test set.
-    (default: 'false')
-  --[no]do_train: Whether to run training.
-    (default: 'false')
-  --eval_batch_size: Total batch size for eval.
-    (default: '8')
+absl.testing.absltest:
+  --test_random_seed: Random seed for testing. Some test frameworks may change the default value of this flag between runs, so it is not appropriate for seeding probabilistic tests.
+    (default: '301')
     (an integer)
-  --gcp_project: [Optional] Project name for the Cloud TPU-enabled project. If not specified, we will attempt to automatically detect the GCE project from metadata.
-  --init_checkpoint: Initial checkpoint (usually from a pre-trained BERT model).
-  --iterations_per_loop: How many steps to make in each estimator call.
-    (default: '1000')
-    (an integer)
-  --learning_rate: The initial learning rate for Adam.
-    (default: '5e-05')
-    (a number)
-  --master: [Optional] TensorFlow master URL.
-  --max_seq_length: The maximum total input sequence length after WordPiece tokenization. Sequences longer than this will be truncated, and sequences shorter than this will be padded.
-    (default: '128')
-    (an integer)
-  --num_tpu_cores: Only used if `use_tpu` is True. Total number of TPU cores to use.
-    (default: '8')
-    (an integer)
-  --num_train_epochs: Total number of training epochs to perform.
-    (default: '3.0')
-    (a number)
-  --output_dir: The output directory where the model checkpoints will be written.
-  --predict_batch_size: Total batch size for predict.
-    (default: '8')
-    (an integer)
-  --save_checkpoints_steps: How often to save the model checkpoint.
-    (default: '1000')
-    (an integer)
-  --task_name: The name of the task to train.
-  --tpu_name: The Cloud TPU to use for training. This should be either the name used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 url.
-  --tpu_zone: [Optional] GCE zone where the Cloud TPU is located in. If not specified, we will attempt to automatically detect the GCE project from metadata.
-  --train_batch_size: Total batch size for training.
-    (default: '32')
-    (an integer)
-  --[no]use_tpu: Whether to use TPU or GPU/CPU.
-    (default: 'false')
-  --vocab_file: The vocabulary file that the BERT model was trained on.
-  --warmup_proportion: Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10% of training.
-    (default: '0.1')
-    (a number)
+  --test_randomize_ordering_seed: If positive, use this as a seed to randomize the execution order for test cases. If "random", pick a random seed to use. If 0 or not set, do not randomize
+    test case execution order. This flag also overrides the TEST_RANDOMIZE_ORDERING_SEED environment variable.
+  --test_srcdir: Root of directory tree where source files live
+    (default: '')
+  --test_tmpdir: Directory for temporary testing files
+    (default: '/tmp/absl_testing')
+  --xml_output_file: File to store XML test results
+    (default: '')
 
-  tensorflow.python.platform.app:
-  -h,--[no]help: show this help
-    (default: 'false')
-  --[no]helpfull: show full help
-    (default: 'false')
-  --[no]helpshort: show this help
+tensorflow.python.ops.parallel_for.pfor:
+  --[no]op_conversion_fallback_to_while_loop: If true, falls back to using a while loop for ops for which a converter is not defined.
     (default: 'false')
 
-  tensorflow_hub.resolver:
-  --tfhub_cache_dir: If set, TF-Hub will download and cache Modules into this directory. Otherwise it will attempt to find a network path.
-
-  absl.flags:
+absl.flags:
   --flagfile: Insert flag definitions from the given file into the command line.
     (default: '')
-  --undefok: comma-separated list of flag names that it is okay to specify on the command line even if the program does not define a flag with that name.  IMPORTANT: flags in this list that have arguments MUST use the --flag=value format.
+  --undefok: comma-separated list of flag names that it is okay to specify on the command line even if the program does not define a flag with that name.  IMPORTANT: flags in this list that
+    have arguments MUST use the --flag=value format.
     (default: '')
 ```
 
@@ -153,19 +158,15 @@ JOB_NAME=<job-name>
  
 And finally run the remote training:
 ```text
-gcloud ml-engine jobs submit training $JOB_NAME \
+gcloud ai-platform jobs submit training $JOB_NAME \
     --staging-bucket $STAGING_BUCKET \
-    --module-name bner.ner.task \
+    --module-name bner.task \
     --package-path bner \
     --config configurations/config_tpu.yaml \
     -- \
     --data_dir gs://<bucket-name>/datasets \
     --output_dir gs://<bucket-name>/models \
-    --tfhub_cache_dir gs://<bucket-name>/tfhub \
-    --learning_rate 2e-5 \
-    --train_batch_size 256 \
-    --num_train_epochs 4.0 \
-    --use_tpu True
+    --tpu=$TPU_NAME
 ```
 
 ### Training on TPU without Google ML-Engine
@@ -173,15 +174,10 @@ To train the model on TPU, you have to create a VM and a TPU instance. To know h
 can follow this example in the [documentation](https://cloud.google.com/tpu/docs/tutorials/mnist).
 To start the training you can run the following command line:
 ```text
-python bner/ner/task.py \
+python -m bner.task \
     --data_dir gs://<bucket-name>/datasets \
     --output_dir gs://<bucket-name>/models \
-    --tfhub_cache_dir gs://<bucket-name>/tfhub \
-    --learning_rate 2e-5 \
-    --train_batch_size 256 \
-    --num_train_epochs 4.0 \
-    --use_tpu True \
-    --tpu_name=$TPU_NAME
+    --tpu=$TPU_NAME
 ```
 
 ### Training on CPU/GPU with Google ML-Engine
@@ -189,27 +185,23 @@ It is not advised to train this model on CPU/GPU because you will easily need se
 training instead of hours. Nevertheless, if you want to train this model on ML-Engine without a
 TPU the process is the same except the command line that should be:
 ```text
-gcloud ml-engine jobs submit training $JOB_NAME \
+gcloud ai-platform jobs submit training $JOB_NAME \
     --staging-bucket $STAGING_BUCKET \
-    --module-name bner.ner.task \
+    --module-name bner.task \
     --package-path bner \
     --config configurations/config_gpu.yaml \
     -- \
     --data_dir gs://<bucket-name>/datasets \
-    --output_dir gs://<bucket-name>/models \
-    --num_train_epochs 4.0 \
-    --learning_rate 2e-5
+    --output_dir gs://<bucket-name>/models
 ```
 
 ### Training on CPU/GPU without Google ML-Engine
 Finally, you can also run the training on a CPU/GPU on any platform (local, AWS or others) by 
 running the following command line:
 ```text
-python bner/ner/task.py \
+python -m bner.task \
     --data_dir datasets \
-    --output_dir models \
-    --num_train_epochs 4.0 \
-    --learning_rate 2e-5
+    --output_dir models
 ```
 
 ## Docker images
